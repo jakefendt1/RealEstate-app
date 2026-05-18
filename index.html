@@ -1177,7 +1177,37 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("app")).render(h(App));
+/* ── Error boundary ── */
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = {err: null}; }
+  static getDerivedStateFromError(err) { return {err}; }
+  render() {
+    if (this.state.err) {
+      return h("div",{style:{fontFamily:"monospace",padding:"32px",maxWidth:700,margin:"40px auto",background:"#FFF0F0",border:"2px solid #C33",borderRadius:10}},
+        h("h2",{style:{color:"#C33",marginBottom:12}},"Render Error"),
+        h("pre",{style:{whiteSpace:"pre-wrap",fontSize:13,color:"#333"}},String(this.state.err)),
+        h("p",{style:{marginTop:16,fontSize:12,color:"#666"}},"Open browser DevTools (F12 → Console) for the full stack trace. Please copy the error and send it back."));
+    }
+    return this.props.children;
+  }
+}
+
+/* ── Mount ── */
+window.addEventListener("error", e => {
+  const el = document.getElementById("app");
+  if (el && !el.childElementCount) {
+    el.innerHTML = '<div style="font-family:monospace;padding:32px;background:#FFF0F0;border:2px solid #C33;border-radius:10;margin:40px auto;max-width:700px"><h2 style="color:#C33">Script Error</h2><pre>' + e.message + ' (' + e.filename + ':' + e.lineno + ')</pre><p style="font-size:12px;color:#666">Open DevTools (F12) for details.</p></div>';
+  }
+});
+
+try {
+  ReactDOM.createRoot(document.getElementById("app")).render(
+    h(ErrorBoundary, null, h(App))
+  );
+} catch(e) {
+  document.getElementById("app").innerHTML =
+    '<div style="font-family:monospace;padding:32px;background:#FFF0F0;border:2px solid #C33;border-radius:10;margin:40px auto;max-width:700px"><h2 style="color:#C33">Mount Error</h2><pre>' + e.message + '</pre></div>';
+}
 </script>
 </body>
 </html>
