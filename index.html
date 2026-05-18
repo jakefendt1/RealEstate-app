@@ -741,18 +741,20 @@ function ClosingCostSection({inp, s}) {
   );
 }
 
-function TransferTaxSection({inp, s}) {
-  const TaxField = ({label, vKey, mKey, tip}) => h(Field,{label,tip},
+function TaxField({label, vKey, mKey, tip, inp, s}) {
+  return h(Field,{label,tip},
     h("div",{style:{display:"flex",gap:8,alignItems:"center"}},
       h(ModeSwitch,{options:[["percent","%"],["dollar","$"]],value:inp[mKey],onChange:s(mKey)}),
       h(Inp,{value:inp[vKey],onChange:s(vKey),placeholder:"0"})));
+}
+function TransferTaxSection({inp, s}) {
   return h(Card,null,
     h(SecHead,{icon:IBldg,title:"Transfer Taxes & Recording",sub:"Location-dependent — auto-filled by state, all values editable"}),
     h("div",{className:"row"},
-      h(TaxField,{label:"State Transfer Tax",vKey:"stateTransferTax",mKey:"stateTransferTaxMode",tip:"Also called deed tax or documentary stamp tax. Rate varies significantly by state — WI is 0.3%, FL is 0.7%, TX has none."}),
-      h(TaxField,{label:"County Transfer Tax",vKey:"countyTransferTax",mKey:"countyTransferTaxMode",tip:"Some counties levy additional transfer taxes on top of the state rate. Common in IL, CA, and NY."})),
+      h(TaxField,{label:"State Transfer Tax",vKey:"stateTransferTax",mKey:"stateTransferTaxMode",tip:"Also called deed tax or documentary stamp tax. Rate varies significantly by state — WI is 0.3%, FL is 0.7%, TX has none.",inp,s}),
+      h(TaxField,{label:"County Transfer Tax",vKey:"countyTransferTax",mKey:"countyTransferTaxMode",tip:"Some counties levy additional transfer taxes on top of the state rate. Common in IL, CA, and NY.",inp,s})),
     h("div",{className:"row"},
-      h(TaxField,{label:"City / Municipal Transfer Tax",vKey:"cityTransferTax",mKey:"cityTransferTaxMode",tip:"Certain cities (e.g. Chicago, NYC, San Francisco) have their own transfer tax on top of state and county rates."}),
+      h(TaxField,{label:"City / Municipal Transfer Tax",vKey:"cityTransferTax",mKey:"cityTransferTaxMode",tip:"Certain cities (e.g. Chicago, NYC, San Francisco) have their own transfer tax on top of state and county rates.",inp,s}),
       h(Field,{label:"Recording Fees",tip:"County clerk fees to record the deed and any other documents. Usually a flat amount.",range:"$50–$200"},
         h(Inp,{value:inp.recordingFees,onChange:s("recordingFees"),prefix:"$",placeholder:"75"}))),
     h(Warn,{text:"Transfer tax rates vary by locality. Verify the exact rates with your title company or county recorder's office before closing."})
