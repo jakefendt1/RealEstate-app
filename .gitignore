@@ -1,0 +1,12 @@
+# Local only
+Net-Proceeds-Calculator.html
+CLAUDE.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.cursor/
+.vscode/
+*.swp

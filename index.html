@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Net Proceeds Calculator v2 — Home Sale Estimate</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #F8F7FB; --bg-card: #FFFFFF; --bg-input: #F3F1F8;
+  --border: #E2DFF0; --border-focus: #7C5CDB;
+  --accent: #5B3FB5; --accent-light: #7C5CDB; --accent-bg: #EDE9F8;
+  --text: #1A1530; --text-sec: #55506B; --text-dim: #8E89A5;
+  --green: #1A8A5C; --green-bg: #E8F7F0; --green-border: #B8E4CD;
+  --red: #C33D3D; --red-bg: #FDEAEA;
+  --orange: #B86A1A;
+  --warn-bg: #FEF9EC; --warn-border: #E8D5A0; --warn-text: #8B6D1F;
+  --info-bg: #EDF4FE; --info-border: #BDD5F8; --info-text: #1A4F9B;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+  --shadow-sm: 0 1px 3px rgba(26,21,48,0.06);
+  --shadow-md: 0 4px 12px rgba(26,21,48,0.08);
+  --radius: 10px;
+}
+html { font-size: 15px; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; }
+input, select, button, textarea { font-family: inherit; }
+
+/* ── Header ── */
+.header { background: #fff; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow-sm); }
+.header-inner { max-width: 1100px; margin: 0 auto; padding: 0 28px; display: flex; align-items: center; justify-content: space-between; height: 60px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.brand-title { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; }
+.brand-sub { font-size: 10.5px; color: var(--text-dim); font-weight: 500; text-transform: uppercase; letter-spacing: 0.02em; }
+.nav { display: flex; height: 60px; align-items: center; gap: 4px; }
+.nav-btn { padding: 0 18px; height: 60px; font-size: 13px; font-weight: 600; cursor: pointer; background: none; color: var(--text-dim); border: none; border-bottom: 2px solid transparent; transition: all 0.2s; }
+.nav-btn:hover { color: var(--text-sec); }
+.nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.nav-scenarios-btn { height: 34px; padding: 0 14px; font-size: 12.5px; font-weight: 600; border-radius: 8px; background: var(--accent-bg); color: var(--accent); border: 1px solid #D0C8F0; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
+.nav-scenarios-btn:hover { background: #E0D9F6; }
+
+/* ── Content ── */
+.content { max-width: 1100px; margin: 0 auto; padding: 24px 28px 60px; }
+.stack { display: flex; flex-direction: column; gap: 20px; }
+.card { background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); padding: 22px 26px; box-shadow: var(--shadow-sm); }
+
+/* ── Section headers ── */
+.sec-head { margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+.sec-icon { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.sec-title { font-size: 14.5px; font-weight: 700; }
+.sec-sub { font-size: 11.5px; color: var(--text-dim); margin-top: 1px; }
+
+/* ── Form layout ── */
+.row { display: flex; flex-wrap: wrap; gap: 14px 20px; margin-bottom: 6px; }
+.field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 calc(50% - 10px); min-width: 190px; }
+.field.wide { flex: 1 1 100%; }
+.field.third { flex: 1 1 calc(33% - 14px); min-width: 150px; }
+.field-label { font-size: 12px; color: var(--text-sec); font-weight: 500; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.range-hint { font-size: 10px; color: var(--text-dim); margin-left: 4px; font-style: italic; }
+
+/* ── Inputs ── */
+.inp { background: var(--bg-input); border: 1px solid var(--border); border-radius: 7px; padding: 9px 12px; color: var(--text); font-size: 13px; outline: none; width: 100%; transition: all 0.15s; }
+.inp:focus { border-color: var(--border-focus); background: #fff; box-shadow: 0 0 0 3px rgba(91,63,181,0.08); }
+.inp::placeholder { color: var(--text-dim); }
+.inp[readonly] { opacity: 0.65; cursor: default; }
+select.inp { appearance: none; cursor: pointer; padding-right: 30px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'%3E%3Cpath d='M5 7L1 3h8z' fill='%238E89A5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+.inp-wrap { position: relative; display: flex; align-items: center; }
+.inp-prefix { position: absolute; left: 10px; color: var(--text-dim); font-size: 13px; pointer-events: none; }
+.inp-wrap .inp.has-prefix { padding-left: 24px; }
+.inp-badge { font-size: 11px; color: var(--text-dim); margin-top: 3px; font-family: var(--mono); }
+
+/* ── Toggle ── */
+.toggle { display: flex; align-items: center; gap: 9px; cursor: pointer; font-size: 12.5px; color: var(--text-sec); user-select: none; }
+.toggle-track { width: 36px; height: 20px; border-radius: 10px; position: relative; background: #D0CCE0; transition: background 0.2s; flex-shrink: 0; }
+.toggle-track.on { background: var(--accent); }
+.toggle-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; position: absolute; top: 3px; left: 3px; transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+.toggle-track.on .toggle-thumb { left: 19px; }
+
+/* ── Mode switch ── */
+.mode-sw { display: inline-flex; border-radius: 7px; overflow: hidden; border: 1px solid var(--border); background: var(--bg-input); }
+.mode-btn { padding: 5px 13px; font-size: 11.5px; font-weight: 600; cursor: pointer; background: transparent; color: var(--text-dim); border: none; border-right: 1px solid var(--border); transition: all 0.15s; }
+.mode-btn:last-child { border-right: none; }
+.mode-btn.active { background: var(--accent-bg); color: var(--accent); }
+
+/* ── Tooltips ── */
+.tip-wrap { position: relative; display: inline-flex; cursor: help; flex-shrink: 0; }
+.tip-icon { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; background: var(--accent-bg); color: var(--accent); font-size: 9px; font-weight: 700; }
+.tip-box { display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--text); color: #E8E5F2; padding: 8px 12px; border-radius: 7px; font-size: 11px; line-height: 1.5; z-index: 999; box-shadow: 0 8px 30px rgba(26,21,48,0.18); max-width: 270px; width: max-content; pointer-events: none; }
+.tip-wrap:hover .tip-box { display: block; }
+
+/* ── Notification boxes ── */
+.warn-box { display: flex; align-items: flex-start; gap: 7px; padding: 9px 13px; border-radius: 7px; background: var(--warn-bg); border: 1px solid var(--warn-border); font-size: 11.5px; color: var(--warn-text); line-height: 1.5; }
+.info-box { display: flex; align-items: flex-start; gap: 7px; padding: 9px 13px; border-radius: 7px; background: var(--info-bg); border: 1px solid var(--info-border); font-size: 11.5px; color: var(--info-text); line-height: 1.5; }
+.success-box { display: flex; align-items: flex-start; gap: 7px; padding: 9px 13px; border-radius: 7px; background: var(--green-bg); border: 1px solid var(--green-border); font-size: 11.5px; color: var(--green); line-height: 1.5; }
+
+/* ── Tags / pills ── */
+.tag { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; white-space: nowrap; }
+.tag-con { background: var(--red-bg); color: var(--red); }
+.tag-opt { background: var(--green-bg); color: var(--green); }
+.tag-neu { background: var(--accent-bg); color: var(--accent); }
+
+/* ── Summary cards ── */
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; }
+.summary-card { padding: 18px; }
+.summary-card.highlight { background: linear-gradient(135deg, #F0ECF9, #E8F7F0) !important; border-color: var(--accent) !important; box-shadow: var(--shadow-md) !important; }
+.summary-label { font-size: 10.5px; color: var(--text-dim); margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.summary-val { font-family: var(--mono); font-weight: 700; letter-spacing: -0.03em; }
+
+/* ── Line items ── */
+.line-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border-bottom: 1px solid #F0EEF5; gap: 10px; }
+.line-item:last-child { border-bottom: none; }
+.line-item.first { background: #FAFAFE; border-radius: 6px 6px 0 0; }
+.line-item.sub-item { padding-left: 32px; }
+.line-item.subtotal { background: #F5F3FB; }
+.line-label { font-size: 13px; color: var(--text-sec); display: flex; align-items: center; gap: 7px; flex: 1; }
+.line-sign { font-size: 11px; font-weight: 700; width: 12px; text-align: center; flex-shrink: 0; }
+.line-val { font-family: var(--mono); font-size: 13px; font-weight: 500; }
+.line-note { font-size: 10.5px; color: var(--text-dim); margin-left: 4px; }
+.net-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; margin-top: 6px; border-radius: 8px; border: 2px solid var(--accent); background: var(--accent-bg); }
+.net-label { font-size: 14px; font-weight: 700; color: var(--accent); }
+.net-val { font-family: var(--mono); font-size: 22px; font-weight: 700; }
+
+/* ── Scenario comparison table ── */
+.sc-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.sc-table th { text-align: right; padding: 9px 12px; font-weight: 600; border-bottom: 2px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
+.sc-table th:first-child { text-align: left; color: var(--text-dim); }
+.sc-table td { text-align: right; padding: 9px 12px; font-family: var(--mono); font-size: 12px; border-bottom: 1px solid #F0EEF5; }
+.sc-table td:first-child { font-family: var(--sans); text-align: left; color: var(--text-sec); }
+.sc-table tr.sc-bold td { font-weight: 700; font-size: 13px; }
+.sc-table tr.sc-bold td:first-child { color: var(--text); }
+.sc-table tr.sc-bold { background: #FAFAFE; }
+.sc-assumption-row td { padding: 4px 12px 8px; border-bottom: none; }
+
+/* ── Sensitivity ── */
+.sens-slider { width: 100%; height: 4px; cursor: pointer; -webkit-appearance: none; background: var(--border); border-radius: 2px; }
+.sens-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); cursor: pointer; }
+.sens-result { margin-top: 10px; padding: 14px 16px; border-radius: 8px; background: #FAFAFE; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.be-result { padding: 9px 16px; border-radius: 8px; background: var(--green-bg); border: 1px solid var(--green-border); display: inline-flex; align-items: center; gap: 8px; }
+
+/* ── Buttons ── */
+.btn { padding: 9px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; border: none; display: inline-flex; align-items: center; gap: 6px; }
+.btn-ghost { background: var(--bg-input); color: var(--text-sec); border: 1px solid var(--border); }
+.btn-ghost:hover { background: #EDEAF5; }
+.btn-ghost-sm { padding: 5px 12px; font-size: 12px; background: var(--bg-input); color: var(--text-sec); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; transition: all 0.15s; }
+.btn-ghost-sm:hover { background: #EDEAF5; }
+.btn-primary { background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(91,63,181,0.25); }
+.btn-primary:hover { background: #4E35A0; }
+.btn-danger-sm { padding: 5px 10px; font-size: 12px; background: var(--red-bg); color: var(--red); border: 1px solid #F0C0C0; border-radius: 6px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s; }
+.btn-danger-sm:hover { background: #FAD0D0; }
+.btn-success-sm { padding: 5px 12px; font-size: 12px; background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); border-radius: 6px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; transition: all 0.15s; }
+.btn-success-sm:hover { background: #D4F0E4; }
+.add-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 13px; border-radius: 7px; font-size: 12.5px; font-weight: 600; color: var(--accent); background: var(--accent-bg); border: 1px dashed var(--accent-light); cursor: pointer; transition: all 0.15s; }
+.add-btn:hover { background: #E0D9F6; }
+.del-btn { width: 28px; height: 28px; border-radius: 6px; background: #F5EDED; color: var(--red); border: 1px solid #F0CECE; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
+.del-btn:hover { background: #FAD5D5; }
+
+/* ── Improvement rows ── */
+.improvement-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.improvement-row .desc { flex: 2; }
+.improvement-row .amt { flex: 1; }
+
+/* ── Misc debit rows ── */
+.misc-row { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid #F5F3FB; }
+.misc-row:last-child { border-bottom: none; }
+.misc-label-inp { flex: 2; }
+.misc-amt-inp { flex: 1; }
+
+/* ── Scenario slots (modal) ── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(26,21,48,0.45); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+.modal { background: var(--bg-card); border-radius: 14px; border: 1px solid var(--border); box-shadow: 0 24px 64px rgba(26,21,48,0.22); width: 100%; max-width: 500px; max-height: 85vh; overflow-y: auto; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px 14px; border-bottom: 1px solid var(--border); }
+.modal-title { font-size: 15px; font-weight: 700; }
+.modal-close { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text-dim); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.modal-close:hover { background: #EDEAF5; color: var(--text); }
+.modal-body { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.slot { padding: 14px 16px; border-radius: 8px; border: 1px solid var(--border); background: #FAFAFE; }
+.slot-empty { border-style: dashed; background: transparent; display: flex; align-items: center; justify-content: space-between; }
+.slot-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+.slot-meta { font-size: 11px; color: var(--text-dim); margin-bottom: 8px; }
+.slot-net { font-family: var(--mono); font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+.slot-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.slot-num { font-size: 11px; font-weight: 700; color: var(--text-dim); margin-right: 8px; }
+
+/* ── Empty state ── */
+.empty { text-align: center; padding: 50px 20px; }
+.empty-icon { width: 48px; height: 48px; margin: 0 auto 14px; background: var(--accent-bg); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.empty-title { font-size: 16px; font-weight: 600; }
+.empty-sub { font-size: 13px; color: var(--text-dim); margin-top: 6px; }
+
+/* ── Export bar ── */
+.export-bar { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 4px; }
+
+/* ── Print-only header in results ── */
+.print-header { display: none; }
+@media print {
+  .print-header { display: block; margin-bottom: 20px; }
+  .no-print { display: none !important; }
+  .header { position: static !important; box-shadow: none !important; border-bottom: 2px solid var(--accent) !important; }
+  .header-inner { height: auto !important; padding: 12px 28px !important; }
+  .nav { display: none !important; }
+  .export-bar { display: none !important; }
+  body { background: white !important; }
+  .content { max-width: 100% !important; padding: 8px 28px 20px !important; }
+  .card { box-shadow: none !important; border: 1px solid #E0DCF0 !important; break-inside: avoid; page-break-inside: avoid; }
+  .net-row { background: #F0ECF9 !important; }
+  .stack { gap: 12px !important; }
+  .sens-slider, .be-result, .btn, .add-btn, .del-btn, .toggle { display: none !important; }
+  .summary-grid { grid-template-columns: repeat(4, 1fr) !important; }
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .header-inner { padding: 8px 16px; height: auto; gap: 8px; flex-wrap: wrap; }
+  .nav { height: auto; }
+  .nav-btn { height: 40px; padding: 0 12px; }
+  .content { padding: 12px 14px 40px; }
+  .card { padding: 16px 14px; }
+  .field { flex: 1 1 100%; min-width: 0; }
+  .field.third { flex: 1 1 calc(50% - 10px); }
+  .summary-grid { grid-template-columns: 1fr 1fr; }
+  .sens-result { flex-direction: column; text-align: center; }
+  .sc-table { font-size: 11px; }
+  .sc-table th, .sc-table td { padding: 7px 8px; }
+  .modal { max-width: 100%; margin: 0; border-radius: 14px 14px 0 0; position: fixed; bottom: 0; }
+  .modal-overlay { align-items: flex-end; padding: 0; }
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script>
+const {useState, useEffect, useMemo, useRef, createElement: h} = React;
+
+/* ── Storage ── */
+const SK_MAIN = "npc-v2";
+const SK_SAVES = "npc-saves-v2";
+const saveMain = d => { try { localStorage.setItem(SK_MAIN, JSON.stringify(d)); } catch(e) {} };
+const loadMain = () => { try { return JSON.parse(localStorage.getItem(SK_MAIN)); } catch(e) { return null; } };
+const saveSaves = d => { try { localStorage.setItem(SK_SAVES, JSON.stringify(d)); } catch(e) {} };
+const loadSaves = () => { try { return JSON.parse(localStorage.getItem(SK_SAVES)) || Array(5).fill(null); } catch(e) { return Array(5).fill(null); } };
+
+/* ── Utilities ── */
+const fmt = n => { if (n == null || isNaN(n)) return "$0"; const a = Math.abs(Math.round(n)).toLocaleString("en-US"); return n < 0 ? "-$" + a : "$" + a; };
+const pctF = n => n == null ? "0.00%" : Number(n).toFixed(2) + "%";
+const P = v => parseFloat(String(v || "").replace(/,/g, "")) || 0;
+const dBetween = (a, b) => Math.max(0, Math.round((new Date(b) - new Date(a)) / 864e5));
+const dInYear = d => { const y = new Date(d).getFullYear(); return (y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0)) ? 366 : 365; };
+const dOfYear = d => { const dt = new Date(d + "T12:00:00"); return Math.floor((dt - new Date(dt.getFullYear(), 0, 0)) / 864e5); };
+const fmtDate = d => { if (!d) return ""; return new Date(d + "T12:00:00").toLocaleDateString("en-US", {month:"long", day:"numeric", year:"numeric"}); };
+const fmtTs = ts => { if (!ts) return ""; const d = new Date(ts); const now = new Date(); const mins = Math.round((now - d) / 60000); if (mins < 2) return "just now"; if (mins < 60) return `${mins}m ago`; const hrs = Math.round(mins / 60); if (hrs < 24) return `${hrs}h ago`; return d.toLocaleDateString("en-US", {month:"short", day:"numeric"}); };
+
+/* ── State defaults by state code ── */
+const STATE_DEFS = {
+  WI: { stateTransferTax:"0.30", stateTransferTaxMode:"percent", countyTransferTax:"0", titleInsurance:"0.50", titleInsuranceMode:"percent", taxBillingConvention:"arrears", stateCapGainsRate:"7.65" },
+  IL: { stateTransferTax:"0.10", stateTransferTaxMode:"percent", countyTransferTax:"0.05", countyTransferTaxMode:"percent", titleInsurance:"0.50", titleInsuranceMode:"percent", taxBillingConvention:"arrears", stateCapGainsRate:"4.95" },
+  MN: { stateTransferTax:"0.33", stateTransferTaxMode:"percent", countyTransferTax:"0", titleInsurance:"0.50", titleInsuranceMode:"percent", taxBillingConvention:"arrears", stateCapGainsRate:"9.85" },
+  IA: { stateTransferTax:"0.16", stateTransferTaxMode:"percent", countyTransferTax:"0", titleInsurance:"0.40", titleInsuranceMode:"percent", taxBillingConvention:"arrears", stateCapGainsRate:"8.53" },
+  CA: { stateTransferTax:"0.11", stateTransferTaxMode:"percent", countyTransferTax:"0.11", countyTransferTaxMode:"percent", titleInsurance:"0.60", titleInsuranceMode:"percent", taxBillingConvention:"advance", stateCapGainsRate:"13.30" },
+  FL: { stateTransferTax:"0.70", stateTransferTaxMode:"percent", countyTransferTax:"0", titleInsurance:"0.57", titleInsuranceMode:"percent", taxBillingConvention:"advance", stateCapGainsRate:"0" },
+  TX: { stateTransferTax:"0", stateTransferTaxMode:"percent", countyTransferTax:"0", titleInsurance:"0.50", titleInsuranceMode:"percent", taxBillingConvention:"advance", stateCapGainsRate:"0" },
+  NY: { stateTransferTax:"0.40", stateTransferTaxMode:"percent", countyTransferTax:"0", titleInsurance:"0.45", titleInsuranceMode:"percent", taxBillingConvention:"arrears", stateCapGainsRate:"10.90" },
+  CO: { stateTransferTax:"0.01", stateTransferTaxMode:"percent", countyTransferTax:"0", titleInsurance:"0.40", titleInsuranceMode:"percent", taxBillingConvention:"arrears", stateCapGainsRate:"4.40" },
+  AZ: { stateTransferTax:"0", stateTransferTaxMode:"percent", countyTransferTax:"0", titleInsurance:"0.35", titleInsuranceMode:"percent", taxBillingConvention:"advance", stateCapGainsRate:"2.50" },
+};
+
+const ALL_STATES = [["","Select state..."],["AL","Alabama"],["AK","Alaska"],["AZ","Arizona"],["AR","Arkansas"],["CA","California"],["CO","Colorado"],["CT","Connecticut"],["DE","Delaware"],["FL","Florida"],["GA","Georgia"],["HI","Hawaii"],["ID","Idaho"],["IL","Illinois"],["IN","Indiana"],["IA","Iowa"],["KS","Kansas"],["KY","Kentucky"],["LA","Louisiana"],["ME","Maine"],["MD","Maryland"],["MA","Massachusetts"],["MI","Michigan"],["MN","Minnesota"],["MS","Mississippi"],["MO","Missouri"],["MT","Montana"],["NE","Nebraska"],["NV","Nevada"],["NH","New Hampshire"],["NJ","New Jersey"],["NM","New Mexico"],["NY","New York"],["NC","North Carolina"],["ND","North Dakota"],["OH","Ohio"],["OK","Oklahoma"],["OR","Oregon"],["PA","Pennsylvania"],["RI","Rhode Island"],["SC","South Carolina"],["SD","South Dakota"],["TN","Tennessee"],["TX","Texas"],["UT","Utah"],["VT","Vermont"],["VA","Virginia"],["WA","Washington"],["WV","West Virginia"],["WI","Wisconsin"],["WY","Wyoming"]];
+
+/* ── Scenario multipliers ── */
+const SM = {
+  conservative: { commission:1.1, closing:1.25, transfer:1.1, interest:1.05 },
+  expected:     { commission:1,   closing:1,    transfer:1,   interest:1    },
+  optimistic:   { commission:0.92,closing:0.8,  transfer:1,   interest:0.97 },
+};
+
+/* ── Default state ── */
+const defaults = () => ({
+  salePrice:"", closingDate: new Date(Date.now()+45*864e5).toISOString().split("T")[0],
+  sellerConcessions:"0", sellerConcessionsMode:"dollar",
+  state:"", county:"", city:"",
+  commissionMode:"percent", totalCommissionPct:"5.5", totalCommissionDollar:"",
+  listingSidePct:"2.75", buyerSidePct:"2.75", showSplit:false,
+  mortgageMode:"exact", principalBalance:"", interestRate:"",
+  lastPaymentDate:"", payoffDate:"", perDiemOverride:"", prepaymentPenalty:"0",
+  closingCostMode:"bundled", bundledClosingPct:"1.0",
+  escrowFee:"1200", titleFees:"1500", titleInsurance:"0", titleInsuranceMode:"dollar", recordingCourierAdmin:"150",
+  stateTransferTax:"0", stateTransferTaxMode:"percent",
+  countyTransferTax:"0", countyTransferTaxMode:"percent",
+  cityTransferTax:"0", cityTransferTaxMode:"percent", recordingFees:"75",
+  annualPropertyTax:"", taxBillingConvention:"arrears", taxProrationSign:"-1",
+  includeHOA:false, hoaMonthlyDues:"", hoaBillingConvention:"arrears",
+  miscDebits:[
+    {label:"Final Utility Bill",amount:""},
+    {label:"Special Assessment Letter",amount:""},
+    {label:"Wire Out Fee",amount:""},
+    {label:"HOA Transfer Fee",amount:""},
+    {label:"Custom",amount:""},
+  ],
+  includeCapGains:false, filingStatus:"single", primaryResidence:true, yearsInHome:"",
+  purchasePrice:"", purchaseClosingCosts:"",
+  improvements:[{description:"",amount:""}],
+  depreciationClaimed:"0", sellingCostsOverride:"",
+  fedCapGainsRate:"15", stateCapGainsRate:"0",
+  conservativeAdj:"2.0", optimisticAdj:"1.5",
+  conservativeHigherCosts:false, conservativeRepairConc:"", conservativeExtendedTime:false,
+  optimisticFasterClose:false,
+  sensitivityTarget:"",
+});
+
+/* ── Calc helpers ── */
+function calcTaxProration(inp) {
+  const ann = P(inp.annualPropertyTax);
+  if (!ann || !inp.closingDate) return 0;
+  const daily = ann / dInYear(inp.closingDate);
+  const daysSold = dOfYear(inp.closingDate);
+  if (inp.taxBillingConvention === "arrears") return -(daily * daysSold);
+  if (inp.taxBillingConvention === "advance") return +(daily * (dInYear(inp.closingDate) - daysSold));
+  return P(inp.taxProrationSign) * daily * daysSold;
+}
+
+function calcHOA(inp) {
+  if (!inp.includeHOA || !P(inp.hoaMonthlyDues) || !inp.closingDate) return 0;
+  const daily = P(inp.hoaMonthlyDues) * 12 / dInYear(inp.closingDate);
+  const daysSold = dOfYear(inp.closingDate);
+  if (inp.hoaBillingConvention === "arrears") return -(daily * daysSold);
+  return +(daily * (dInYear(inp.closingDate) - daysSold));
+}
+
+function calcMiscDebits(inp) {
+  return (inp.miscDebits || []).reduce((s, r) => s + P(r.amount), 0);
+}
+
+function calc(inp, sc) {
+  const sp = P(inp.salePrice);
+  if (!sp) return null;
+  const m = SM[sc] || SM.expected;
+  const pa = sc === "conservative" ? 1 - P(inp.conservativeAdj)/100 : sc === "optimistic" ? 1 + P(inp.optimisticAdj)/100 : 1;
+  const asp = sp * pa;
+
+  let comm = inp.commissionMode === "percent" ? asp * P(inp.totalCommissionPct)/100 : P(inp.totalCommissionDollar);
+  comm *= m.commission;
+
+  let conc = inp.sellerConcessionsMode === "percent" ? asp * P(inp.sellerConcessions)/100 : P(inp.sellerConcessions);
+  if (sc === "conservative" && P(inp.conservativeRepairConc)) conc += P(inp.conservativeRepairConc);
+
+  let cc;
+  if (inp.closingCostMode === "bundled") {
+    cc = asp * P(inp.bundledClosingPct)/100;
+  } else {
+    const ti = inp.titleInsuranceMode === "percent" ? asp * P(inp.titleInsurance)/100 : P(inp.titleInsurance);
+    cc = P(inp.escrowFee) + P(inp.titleFees) + ti + P(inp.recordingCourierAdmin);
+  }
+  cc *= m.closing;
+  if (sc === "conservative" && inp.conservativeHigherCosts) cc *= 1.25;
+
+  const txv = (v, md) => md === "percent" ? asp * P(v)/100 : P(v);
+  const tt = (txv(inp.stateTransferTax, inp.stateTransferTaxMode) + txv(inp.countyTransferTax, inp.countyTransferTaxMode) + txv(inp.cityTransferTax, inp.cityTransferTaxMode) + P(inp.recordingFees)) * m.transfer;
+
+  let pp = 0, ai = 0, pen = 0, accrualDays = 0;
+  if (inp.mortgageMode === "exact" && P(inp.principalBalance) > 0) {
+    pp = P(inp.principalBalance);
+    const rate = P(inp.interestRate)/100;
+    const payoffDt = inp.payoffDate || inp.closingDate;
+    let extraDays = 0;
+    if (sc === "conservative" && inp.conservativeExtendedTime) extraDays = 15;
+    if (sc === "optimistic" && inp.optimisticFasterClose) extraDays = -10;
+    if (inp.perDiemOverride && P(inp.perDiemOverride) > 0) {
+      accrualDays = inp.lastPaymentDate ? dBetween(inp.lastPaymentDate, payoffDt) + extraDays : 30 + extraDays;
+      ai = P(inp.perDiemOverride) * Math.max(0, accrualDays);
+    } else if (rate > 0 && inp.lastPaymentDate) {
+      accrualDays = dBetween(inp.lastPaymentDate, payoffDt) + extraDays;
+      ai = pp * rate / 365 * Math.max(0, accrualDays);
+    }
+    pen = P(inp.prepaymentPenalty);
+  }
+  ai *= m.interest;
+  const tm = pp + ai + pen;
+
+  const tp = calcTaxProration(inp);
+  const hoa = calcHOA(inp);
+  const md = calcMiscDebits(inp);
+
+  let fcg = 0, scg = 0, tcg = 0, taxableGain = 0, exclusion = 0, rawGain = 0;
+  if (inp.includeCapGains) {
+    const impTotal = (inp.improvements || []).reduce((s, i) => s + P(i.amount), 0);
+    const costBasis = P(inp.purchasePrice) + P(inp.purchaseClosingCosts) + impTotal - P(inp.depreciationClaimed);
+    const sellingCosts2 = inp.sellingCostsOverride ? P(inp.sellingCostsOverride) : comm + cc;
+    rawGain = asp - costBasis - sellingCosts2;
+    const yearsIn = P(inp.yearsInHome);
+    const eligible = inp.primaryResidence && yearsIn >= 2;
+    exclusion = eligible ? (inp.filingStatus === "married" ? 500000 : 250000) : 0;
+    taxableGain = Math.max(0, rawGain - exclusion);
+    fcg = taxableGain * P(inp.fedCapGainsRate)/100;
+    scg = taxableGain * P(inp.stateCapGainsRate)/100;
+    tcg = fcg + scg;
+  }
+
+  const tc = comm + cc + tt + conc + md;
+  const net = asp - tc - tm + tp + hoa - tcg;
+  return { adjSalePrice:asp, commission:comm, closingCosts:cc, transferTaxes:tt, concessions:conc, miscDebits:md, totalCosts:tc, principalPayoff:pp, accruedInterest:ai, accrualDays, penalty:pen, totalMortgage:tm, taxProration:tp, hoaProration:hoa, fedCGTax:fcg, stateCGTax:scg, totalCGTax:tcg, rawGain, taxableGain, exclusion, netProceeds:net };
+}
+
+/* ── PDF Export ── */
+function exportPDF(inp, results, r) {
+  try {
+    const {jsPDF} = window.jspdf;
+    if (!jsPDF) { alert("PDF library not loaded. Please refresh."); return; }
+    const doc = new jsPDF({unit:"pt", format:"letter"});
+    const W=612, H=792, ml=48, mr=48, cW=W-ml-mr;
+    let y=48;
+    const ac=[91,63,181], gn=[26,138,92], rd=[195,61,61], tx=[26,21,48], dm=[142,137,165], bd=[226,223,240];
+
+    doc.setFillColor(ac[0],ac[1],ac[2]);
+    doc.rect(0,0,W,56,"F");
+    doc.setFont("helvetica","bold"); doc.setFontSize(16); doc.setTextColor(255,255,255);
+    doc.text("Seller Net Proceeds Estimate",ml,36);
+    doc.setFontSize(9); doc.setFont("helvetica","normal");
+    doc.text("Generated "+new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}),W-mr,36,{align:"right"});
+    y=76;
+
+    const loc=[inp.city,inp.county?inp.county+" County":"",inp.state?ALL_STATES.find(s=>s[0]===inp.state)?.[1]||inp.state:""].filter(Boolean);
+    doc.setFontSize(9); doc.setTextColor(dm[0],dm[1],dm[2]);
+    doc.text((loc.length?loc.join(", ")+" — ":"")+"Closing: "+fmtDate(inp.closingDate),ml,y);
+    y+=22;
+
+    const boxes=[
+      {l:"SALE PRICE",v:fmt(r.adjSalePrice),c:ac},
+      {l:"TOTAL COSTS",v:fmt(r.totalCosts),c:rd},
+      {l:"MORTGAGE PAYOFF",v:fmt(r.totalMortgage),c:[184,106,26]},
+      {l:"NET PROCEEDS",v:fmt(r.netProceeds),c:r.netProceeds>=0?gn:rd},
+    ];
+    const bw=(cW-18)/4;
+    boxes.forEach((b,i) => {
+      const bx=ml+i*(bw+6);
+      doc.setFillColor(248,247,251); doc.roundedRect(bx,y,bw,52,4,4,"F");
+      doc.setFontSize(7.5); doc.setTextColor(dm[0],dm[1],dm[2]); doc.setFont("helvetica","bold"); doc.text(b.l,bx+10,y+16);
+      doc.setFontSize(14); doc.setTextColor(b.c[0],b.c[1],b.c[2]); doc.text(b.v,bx+10,y+38);
+    });
+    y+=72;
+
+    doc.setFontSize(11); doc.setTextColor(tx[0],tx[1],tx[2]); doc.setFont("helvetica","bold"); doc.text("Detailed Breakdown",ml,y);
+    y+=6; doc.setDrawColor(bd[0],bd[1],bd[2]); doc.setLineWidth(0.5); doc.line(ml,y,W-mr,y); y+=14;
+
+    const lines=[
+      {l:"Sale Price",v:r.adjSalePrice,s:""},
+      {l:"Less: Realtor Commissions",v:-r.commission,s:"-"},
+      {l:"Less: Seller Closing Costs",v:-r.closingCosts,s:"-"},
+      {l:"Less: Transfer Taxes & Recording",v:-r.transferTaxes,s:"-"},
+      {l:"Less: Seller Concessions",v:-r.concessions,s:"-"},
+    ];
+    if (r.miscDebits > 0) lines.push({l:"Less: Misc. Seller Debits",v:-r.miscDebits,s:"-"});
+    lines.push({l:"Less: Mortgage Principal",v:-r.principalPayoff,s:"-"});
+    if (r.accruedInterest > 0) lines.push({l:`Less: Accrued Interest (${r.accrualDays}d)`,v:-r.accruedInterest,s:"-"});
+    if (r.penalty > 0) lines.push({l:"Less: Prepayment Penalty",v:-r.penalty,s:"-"});
+    const tpSign = r.taxProration >= 0 ? "+" : "-";
+    lines.push({l:(r.taxProration>=0?"Plus":"Less")+": Property Tax Proration",v:r.taxProration,s:tpSign});
+    if (inp.includeHOA && r.hoaProration !== 0) lines.push({l:(r.hoaProration>=0?"Plus":"Less")+": HOA Dues Proration",v:r.hoaProration,s:r.hoaProration>=0?"+":"-"});
+    if (inp.includeCapGains) { lines.push({l:"Less: Federal Capital Gains",v:-r.fedCGTax,s:"-"}); lines.push({l:"Less: State Capital Gains",v:-r.stateCGTax,s:"-"}); }
+
+    doc.setFontSize(9.5);
+    lines.forEach((it,i) => {
+      if (i%2===0) { doc.setFillColor(250,250,254); doc.rect(ml,y-9,cW,18,"F"); }
+      doc.setTextColor(tx[0],tx[1],tx[2]); doc.setFont("helvetica","normal"); doc.text(it.s+"  "+it.l,ml+4,y+2);
+      const vc=it.v>=0?tx:rd; doc.setTextColor(vc[0],vc[1],vc[2]); doc.setFont("helvetica","bold");
+      doc.text(fmt(Math.abs(it.v)),W-mr-4,y+2,{align:"right"});
+      y+=18;
+    });
+
+    y+=4; doc.setFillColor(ac[0],ac[1],ac[2]); doc.roundedRect(ml,y-10,cW,28,4,4,"F");
+    doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.text("Estimated Net Proceeds",ml+12,y+7);
+    doc.setFontSize(14); doc.text(fmt(r.netProceeds),W-mr-12,y+7,{align:"right"});
+    y+=38;
+
+    if (y < H-220) {
+      doc.setFontSize(11); doc.setTextColor(tx[0],tx[1],tx[2]); doc.setFont("helvetica","bold"); doc.text("Scenario Comparison",ml,y);
+      y+=6; doc.setDrawColor(bd[0],bd[1],bd[2]); doc.line(ml,y,W-mr,y); y+=14;
+      const colW=[cW*0.36,cW*0.213,cW*0.213,cW*0.213];
+      const colC=[dm,rd,ac,gn];
+      ["","CONSERVATIVE","EXPECTED","OPTIMISTIC"].forEach((c,i) => {
+        const cx=ml+colW.slice(0,i).reduce((a,b)=>a+b,0);
+        doc.setFontSize(8); doc.setFont("helvetica","bold"); doc.setTextColor(colC[i][0],colC[i][1],colC[i][2]);
+        doc.text(c,i===0?cx:cx+colW[i]-4,y,i===0?{}:{align:"right"});
+      });
+      y+=14;
+      const sRows=[{l:"Sale Price",k:"adjSalePrice"},{l:"Commission",k:"commission"},{l:"Closing Costs",k:"closingCosts"},{l:"Transfer Taxes",k:"transferTaxes"},{l:"Mortgage Payoff",k:"totalMortgage"},{l:"Tax Proration",k:"taxProration"}];
+      if (inp.includeHOA) sRows.push({l:"HOA Proration",k:"hoaProration"});
+      if (inp.includeCapGains) sRows.push({l:"Capital Gains",k:"totalCGTax"});
+      sRows.push({l:"Net Proceeds",k:"netProceeds",bold:true});
+      doc.setFontSize(9);
+      sRows.forEach((row,ri) => {
+        if (row.bold) { doc.setFillColor(240,238,248); doc.rect(ml,y-9,cW,17,"F"); } else if(ri%2===0) { doc.setFillColor(252,252,254); doc.rect(ml,y-9,cW,17,"F"); }
+        doc.setTextColor(row.bold?tx[0]:dm[0],row.bold?tx[1]:dm[1],row.bold?tx[2]:dm[2]);
+        doc.setFont("helvetica",row.bold?"bold":"normal"); doc.text(row.l,ml+4,y+1);
+        ["conservative","expected","optimistic"].forEach((s,si) => {
+          const v=results[s]?results[s][row.k]:0;
+          const cx=ml+colW[0]+colW.slice(1,si+1).reduce((a,b)=>a+b,0)+colW[si+1]-4;
+          doc.setTextColor(row.bold?colC[si+1][0]:tx[0],row.bold?colC[si+1][1]:tx[1],row.bold?colC[si+1][2]:tx[2]);
+          doc.setFont("helvetica",row.bold?"bold":"normal"); doc.text(fmt(v),cx,y+1,{align:"right"});
+        });
+        y+=17;
+      });
+    }
+
+    doc.setFontSize(7.5); doc.setTextColor(dm[0],dm[1],dm[2]); doc.setFont("helvetica","italic");
+    doc.text("This estimate is for informational purposes only and does not constitute financial or legal advice.",ml,H-30);
+    doc.text("Actual figures may vary based on lender payoff statements, title company fees, and local tax rates.",ml,H-20);
+    doc.save("Net-Proceeds-Estimate.pdf");
+  } catch(e) { console.error(e); alert("PDF error: "+e.message); }
+}
+
+/* ── SVG icons ── */
+const Svg = (p, paths) => h("svg",{...p,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"},paths.map((d,i)=>h("path",{d,key:i})));
+const IHome    = p => Svg(p,["M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z","M9 22V12h6v10"]);
+const IDollar  = p => Svg(p,["M12 1v22","M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"]);
+const IPct     = p => Svg(p,["M19 5L5 19","M6.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5","M17.5 20a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5"]);
+const IBank    = p => Svg(p,["M3 21h18","M3 10h18","M5 6l7-3 7 3","M4 10v11","M20 10v11","M8 14v3","M12 14v3","M16 14v3"]);
+const IFile    = p => Svg(p,["M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z","M14 2v6h6","M16 13H8","M16 17H8"]);
+const IMap     = p => Svg(p,["M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4","M8 2v16","M16 6v16"]);
+const IBldg    = p => Svg(p,["M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18","M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2","M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"]);
+const ITarget  = p => Svg(p,["M22 12A10 10 0 1 1 12 2","M22 12L12 12","M12 2v10"]);
+const IDl      = p => Svg(p,["M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4","M7 10l5 5 5-5","M12 15V3"]);
+const ISliders = p => Svg(p,["M4 21v-7","M4 10V3","M12 21v-9","M12 8V3","M20 21v-5","M20 12V3","M1 14h6","M9 8h6","M17 16h6"]);
+const IInfo    = p => Svg(p,["M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10","M12 16v-4","M12 8h.01"]);
+const IChart   = p => Svg(p,["M18 20V10","M12 20V4","M6 20v-6"]);
+const IWarn    = p => Svg(p,["M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0","M12 9v4","M12 17h.01"]);
+const IPlus    = p => Svg(p,["M12 5v14","M5 12h14"]);
+const ISave    = p => Svg(p,["M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z","M17 21v-8H7v8","M7 3v5h8"]);
+const ITrash   = p => Svg(p,["M3 6h18","M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"]);
+const IHOA     = p => Svg(p,["M3 21h18","M9 21V9l3-3 3 3v12","M12 3v3","M5 10h1","M18 10h1","M5 14h1","M18 14h1"]);
+const IList    = p => Svg(p,["M8 6h13","M8 12h13","M8 18h13","M3 6h.01","M3 12h.01","M3 18h.01"]);
+const ISparkle = p => Svg(p,["M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2"]);
+
+/* ── UI Components ── */
+const Tip = ({text}) => h("span",{className:"tip-wrap"},h("span",{className:"tip-icon"},"?"),h("span",{className:"tip-box"},text));
+const Field = ({label,tip,range,wide,third,children}) => h("div",{className:"field"+(wide?" wide":"")+(third?" third":"")},h("label",{className:"field-label"},label,tip&&h(Tip,{text:tip}),range&&h("span",{className:"range-hint"},range)),children);
+const Inp = ({value,onChange,type,placeholder,prefix,readonly,badge}) => {
+  const hp=!!prefix;
+  return h("div",null,h("div",{className:"inp-wrap"},hp&&h("span",{className:"inp-prefix"},prefix),h("input",{className:"inp"+(hp?" has-prefix":""),type:type||"text",value:value||"",onChange:e=>onChange&&onChange(e.target.value),placeholder:placeholder||"",readOnly:!!readonly})),badge&&h("div",{className:"inp-badge"},badge));
+};
+const Sel = ({value,onChange,options}) => h("select",{className:"inp",value:value||"",onChange:e=>onChange(e.target.value)},options.map(([v,l])=>h("option",{key:v,value:v},l)));
+const Toggle = ({value,onChange,label}) => h("div",{className:"toggle",onClick:()=>onChange(!value)},h("div",{className:"toggle-track"+(value?" on":"")},h("div",{className:"toggle-thumb"})),h("span",null,label));
+const ModeSwitch = ({options,value,onChange}) => h("div",{className:"mode-sw"},options.map(([v,l])=>h("button",{key:v,type:"button",className:"mode-btn"+(value===v?" active":""),onClick:()=>onChange(v)},l)));
+const SecHead = ({icon:I,color,bg,title,sub}) => h("div",{className:"sec-head"},h("div",{className:"sec-icon",style:{background:bg||(color?"":"var(--accent-bg)"),color:color||"var(--accent)"}},h(I,{style:{width:15,height:15,stroke:color||"var(--accent)"}})),h("div",null,h("div",{className:"sec-title"},title),sub&&h("div",{className:"sec-sub"},sub)));
+const Card = ({children,className}) => h("div",{className:"card "+(className||"")},children);
+const Warn = ({text}) => h("div",{className:"warn-box"},h(IWarn,{style:{width:14,height:14,stroke:"#8B6D1F",flexShrink:0}}),h("span",null,text));
+const Info = ({text}) => h("div",{className:"info-box"},h(IInfo,{style:{width:14,height:14,stroke:"#1A4F9B",flexShrink:0}}),h("span",null,text));
+const Tag = ({type,text}) => h("span",{className:"tag tag-"+(type||"neu")},text);
+
+/* ── Scenario Modal ── */
+function ScenarioModal({onClose, inp, results, setInp}) {
+  const [saves, setSaves] = useState(loadSaves);
+  const [naming, setNaming] = useState(null);
+  const [nameVal, setNameVal] = useState("");
+
+  const persist = updated => { setSaves(updated); saveSaves(updated); };
+
+  const doSave = idx => {
+    if (saves[idx]) {
+      if (!window.confirm(`Overwrite "${saves[idx].name}"?`)) return;
+    }
+    const n = saves[idx] ? saves[idx].name : (nameVal.trim() || `Scenario ${idx+1}`);
+    const updated = saves.slice();
+    updated[idx] = { name: n, timestamp: Date.now(), netProceeds: results.expected?.netProceeds ?? null, state: JSON.parse(JSON.stringify(inp)) };
+    persist(updated);
+    setNaming(null);
+    setNameVal("");
+  };
+
+  const doLoad = idx => {
+    if (!saves[idx]) return;
+    if (!window.confirm(`Load "${saves[idx].name}"? Current inputs will be replaced.`)) return;
+    setInp(prev => ({...defaults(), ...saves[idx].state}));
+    onClose();
+  };
+
+  const doDelete = idx => {
+    if (!saves[idx]) return;
+    if (!window.confirm(`Delete "${saves[idx].name}"?`)) return;
+    const updated = saves.slice(); updated[idx] = null; persist(updated);
+  };
+
+  return h("div",{className:"modal-overlay",onClick:e=>{if(e.target===e.currentTarget)onClose();}},
+    h("div",{className:"modal"},
+      h("div",{className:"modal-header"},
+        h("div",null,h("div",{className:"modal-title"},"Saved Scenarios"),h("div",{style:{fontSize:11,color:"var(--text-dim)",marginTop:2}},"Up to 5 named saves · auto-saved separately from your current inputs")),
+        h("button",{className:"modal-close",onClick:onClose},"×")),
+      h("div",{className:"modal-body"},
+        saves.map((slot, i) => {
+          if (!slot) {
+            if (naming === i) {
+              return h("div",{key:i,className:"slot"},
+                h("div",{style:{fontSize:11,color:"var(--text-dim)",marginBottom:6}},`Slot ${i+1}`),
+                h("div",{style:{display:"flex",gap:8}},
+                  h("input",{className:"inp",style:{flex:1},autoFocus:true,value:nameVal,onChange:e=>setNameVal(e.target.value),placeholder:"Name this scenario",onKeyDown:e=>{if(e.key==="Enter")doSave(i);if(e.key==="Escape"){setNaming(null);setNameVal("");}}}),
+                  h("button",{className:"btn-success-sm",onClick:()=>doSave(i)},h(ISave,{style:{width:12,height:12}}),"Save"),
+                  h("button",{className:"btn-ghost-sm",onClick:()=>{setNaming(null);setNameVal("");}},"Cancel")));
+            }
+            return h("div",{key:i,className:"slot slot-empty"},
+              h("span",{style:{fontSize:12,color:"var(--text-dim)"}},"Slot "+(i+1)+" — empty"),
+              h("button",{className:"btn-ghost-sm",onClick:()=>{setNaming(i);setNameVal("");}},h(ISave,{style:{width:12,height:12}}),"Save here"));
+          }
+          return h("div",{key:i,className:"slot"},
+            h("div",{className:"slot-name"},slot.name),
+            h("div",{className:"slot-meta"},fmtTs(slot.timestamp)+" · "+(slot.state?.city||slot.state?.state||"No location")),
+            slot.netProceeds != null && h("div",{className:"slot-net",style:{color:slot.netProceeds>=0?"var(--green)":"var(--red)"}},fmt(slot.netProceeds)+" net"),
+            h("div",{className:"slot-actions"},
+              h("button",{className:"btn-ghost-sm",onClick:()=>doLoad(i)},"Load"),
+              h("button",{className:"btn-ghost-sm",onClick:()=>{setNaming(i);setNameVal(slot.name);}},h(ISave,{style:{width:12,height:12}}),"Overwrite"),
+              h("button",{className:"btn-danger-sm",onClick:()=>doDelete(i)},h(ITrash,{style:{width:12,height:12}}))));
+        })
+      )
+    )
+  );
+}
+
+/* ══════════════════════════════
+   INPUT SECTIONS
+══════════════════════════════ */
+
+function SaleSection({inp, s}) {
+  return h(Card,null,
+    h(SecHead,{icon:IDollar,color:"#5B3FB5",bg:"#EDE9F8",title:"Sale Assumptions",sub:"Sale price, closing date, and seller concessions"}),
+    h("div",{className:"row"},
+      h(Field,{label:"Estimated Sale Price",tip:"The price you expect to sell for, before any adjustments.",range:"Required"},
+        h(Inp,{value:inp.salePrice,onChange:s("salePrice"),prefix:"$",placeholder:"400,000"})),
+      h(Field,{label:"Closing Date",tip:"The date funds are expected to be disbursed. Affects tax proration and interest accrual."},
+        h(Inp,{type:"date",value:inp.closingDate,onChange:s("closingDate")}))),
+    h("div",{className:"row"},
+      h(Field,{label:"Seller Concessions / Buyer Credits",tip:"Credits you pay to the buyer at closing, often used to cover their closing costs or buy down their rate.",range:"Typical: 0–3%"},
+        h("div",{style:{display:"flex",gap:8,alignItems:"center"}},
+          h(ModeSwitch,{options:[["dollar","$"],["percent","%"]],value:inp.sellerConcessionsMode,onChange:s("sellerConcessionsMode")}),
+          h(Inp,{value:inp.sellerConcessions,onChange:s("sellerConcessions"),prefix:inp.sellerConcessionsMode==="dollar"?"$":"",placeholder:"0"}))))
+  );
+}
+
+function LocationSection({inp, set, s}) {
+  const handleState = val => {
+    const updates = {state: val};
+    if (STATE_DEFS[val]) Object.assign(updates, STATE_DEFS[val]);
+    set(prev => ({...prev, ...updates}));
+  };
+  const hasDefaults = !!STATE_DEFS[inp.state];
+  const stateName = ALL_STATES.find(x => x[0] === inp.state)?.[1] || inp.state;
+
+  return h(Card,null,
+    h(SecHead,{icon:IMap,title:"Location",sub:"State auto-fills transfer tax rates, tax convention, and cap gains rate"}),
+    h("div",{className:"row"},
+      h(Field,{label:"State",tip:"Selecting a known state auto-populates transfer tax rates, tax convention, and state capital gains rate. All values remain editable."},
+        h(Sel,{value:inp.state,onChange:handleState,options:ALL_STATES})),
+      h(Field,{label:"County",tip:"Used for display purposes only. Enter county transfer tax rate in the Transfer Taxes section."},
+        h(Inp,{value:inp.county,onChange:s("county"),placeholder:"e.g. Dane"})),
+      h(Field,{label:"City / Municipality",tip:"Used for display and PDF export."},
+        h(Inp,{value:inp.city,onChange:s("city"),placeholder:"e.g. Sun Prairie"}))),
+    hasDefaults && h(Info,{text:`Auto-filled transfer tax rates, title insurance estimate, and tax billing convention for ${stateName}. All values are editable below.`})
+  );
+}
+
+function CommissionSection({inp, s}) {
+  return h(Card,null,
+    h(SecHead,{icon:IPct,color:"#1A8A5C",bg:"#E8F7F0",title:"Realtor Commissions",sub:"Total commission or listing / buyer-side split"}),
+    h("div",{className:"row"},
+      h(Field,{label:"Commission Mode"},
+        h(ModeSwitch,{options:[["percent","% of Sale"],["dollar","Flat $"]],value:inp.commissionMode,onChange:s("commissionMode")})),
+      inp.commissionMode==="percent"
+        ? h(Field,{label:"Total Commission %",tip:"Combined listing + buyer-agent commission. With buyer-agent compensation changes, this is increasingly negotiable.",range:"Common: 2.5–5.5%"},
+            h(Inp,{value:inp.totalCommissionPct,onChange:s("totalCommissionPct"),placeholder:"5.5"}))
+        : h(Field,{label:"Total Commission ($)",tip:"Flat dollar amount agreed upon with your agent."},
+            h(Inp,{value:inp.totalCommissionDollar,onChange:s("totalCommissionDollar"),prefix:"$",placeholder:"22,000"}))),
+    h("div",{style:{marginTop:6}},
+      h(Toggle,{value:inp.showSplit,onChange:s("showSplit"),label:"Show listing / buyer-side split"})),
+    inp.showSplit && inp.commissionMode==="percent" && h("div",{className:"row",style:{marginTop:10}},
+      h(Field,{label:"Listing Side %",tip:"Your listing agent's portion of the commission."},
+        h(Inp,{value:inp.listingSidePct,onChange:s("listingSidePct"),placeholder:"2.75"})),
+      h(Field,{label:"Buyer Side %",tip:"The buyer's agent compensation, offered by the seller."},
+        h(Inp,{value:inp.buyerSidePct,onChange:s("buyerSidePct"),placeholder:"2.75"})))
+  );
+}
+
+function MortgageSection({inp, s}) {
+  const pp = P(inp.principalBalance);
+  const rate = P(inp.interestRate);
+  const perDiem = pp > 0 && rate > 0 ? (pp * rate / 100 / 365).toFixed(2) : null;
+  const payoffDt = inp.payoffDate || inp.closingDate;
+  const accrualDays = pp > 0 && inp.lastPaymentDate && payoffDt ? dBetween(inp.lastPaymentDate, payoffDt) : null;
+
+  return h(Card,null,
+    h(SecHead,{icon:IBank,color:"#B86A1A",bg:"#FEF3E6",title:"Mortgage Payoff",sub:"Principal balance, interest accrual, and payoff date"}),
+    h("div",{className:"row"},
+      h(Field,{label:"Payoff Mode"},
+        h(ModeSwitch,{options:[["exact","Exact Payoff"],["none","No Mortgage"]],value:inp.mortgageMode,onChange:s("mortgageMode")}))),
+    inp.mortgageMode==="exact" && h("div",null,
+      h("div",{className:"row",style:{marginTop:10}},
+        h(Field,{label:"Current Principal Balance",tip:"The remaining loan balance. Contact your lender for an exact figure — it changes daily.",range:"Required"},
+          h(Inp,{value:inp.principalBalance,onChange:s("principalBalance"),prefix:"$",placeholder:"280,000"})),
+        h(Field,{label:"Interest Rate (APR %)",tip:"Your loan's annual percentage rate. Used to calculate daily interest accrual.",range:"e.g. 6.5"},
+          h(Inp,{value:inp.interestRate,onChange:s("interestRate"),placeholder:"6.5",
+            badge:perDiem?`Auto per diem: $${perDiem}/day`:null}))),
+      h("div",{className:"row"},
+        h(Field,{label:"Last Payment Date",tip:"The date of your most recent monthly payment. Interest accrues from this date to the payoff date."},
+          h(Inp,{type:"date",value:inp.lastPaymentDate,onChange:s("lastPaymentDate")})),
+        h(Field,{label:"Payoff Date",tip:"The date your lender will receive the payoff wire. Defaults to closing date if left blank. Often 1–3 days before closing."},
+          h(Inp,{type:"date",value:inp.payoffDate,onChange:s("payoffDate"),placeholder:"Defaults to closing date"}))),
+      accrualDays !== null && h("div",{style:{marginBottom:8}},
+        h(Info,{text:`Accrual period: ${accrualDays} days from last payment to payoff date. Estimated accrued interest: ${fmt(pp*rate/100/365*accrualDays)}.`})),
+      h("div",{className:"row"},
+        h(Field,{label:"Per Diem Override ($)",tip:"Your lender's per diem from an official payoff statement. This overrides the auto-calculated rate.",range:"Optional"},
+          h(Inp,{value:inp.perDiemOverride,onChange:s("perDiemOverride"),prefix:"$",placeholder:"Auto-calculated"})),
+        h(Field,{label:"Prepayment Penalty",tip:"Rare for most residential loans. Check your loan documents or call your lender.",range:"Default: $0"},
+          h(Inp,{value:inp.prepaymentPenalty,onChange:s("prepaymentPenalty"),prefix:"$",placeholder:"0"}))),
+      h(Warn,{text:"Always obtain an official payoff statement from your lender. The exact payoff amount is date-sensitive and may differ from this estimate."}))
+  );
+}
+
+function ClosingCostSection({inp, s}) {
+  return h(Card,null,
+    h(SecHead,{icon:IFile,title:"Seller Closing Costs",sub:"Title, escrow, and settlement fees"}),
+    h("div",{className:"row"},
+      h(Field,{label:"Cost Mode",tip:"Use Bundled % for a quick estimate. Switch to Itemized to enter actual quotes from your title company."},
+        h(ModeSwitch,{options:[["bundled","Bundled Estimate"],["itemized","Itemized"]],value:inp.closingCostMode,onChange:s("closingCostMode")}))),
+    inp.closingCostMode==="bundled"
+      ? h("div",{className:"row",style:{marginTop:10}},
+          h(Field,{label:"Closing Costs % of Sale Price",tip:"All-in estimate for seller-paid closing costs including title, escrow, and admin fees.",range:"Typical: 0.5–1.5%"},
+            h(Inp,{value:inp.bundledClosingPct,onChange:s("bundledClosingPct"),placeholder:"1.0"})))
+      : h("div",null,
+          h("div",{className:"row",style:{marginTop:10}},
+            h(Field,{label:"Escrow / Settlement Fee",tip:"The title or escrow company's fee for managing the closing.",range:"$500–$2,500"},
+              h(Inp,{value:inp.escrowFee,onChange:s("escrowFee"),prefix:"$",placeholder:"1,200"})),
+            h(Field,{label:"Title Search / Exam Fees",tip:"Attorney or title company fees for researching the property's chain of title.",range:"$300–$1,500"},
+              h(Inp,{value:inp.titleFees,onChange:s("titleFees"),prefix:"$",placeholder:"1,500"}))),
+          h("div",{className:"row"},
+            h(Field,{label:"Owner's Title Insurance (Seller)",tip:"A one-time policy that protects the buyer against title defects. In many states, sellers customarily pay for this.",range:"Varies by state"},
+              h("div",{style:{display:"flex",gap:8,alignItems:"center"}},
+                h(ModeSwitch,{options:[["dollar","$"],["percent","%"]],value:inp.titleInsuranceMode,onChange:s("titleInsuranceMode")}),
+                h(Inp,{value:inp.titleInsurance,onChange:s("titleInsurance"),placeholder:"0"}))),
+            h(Field,{label:"Recording / Courier / Admin",tip:"County recording fees, overnight courier, and miscellaneous closing-related charges.",range:"$50–$300"},
+              h(Inp,{value:inp.recordingCourierAdmin,onChange:s("recordingCourierAdmin"),prefix:"$",placeholder:"150"}))))
+  );
+}
+
+function TransferTaxSection({inp, s}) {
+  const TaxField = ({label, vKey, mKey, tip}) => h(Field,{label,tip},
+    h("div",{style:{display:"flex",gap:8,alignItems:"center"}},
+      h(ModeSwitch,{options:[["percent","%"],["dollar","$"]],value:inp[mKey],onChange:s(mKey)}),
+      h(Inp,{value:inp[vKey],onChange:s(vKey),placeholder:"0"})));
+  return h(Card,null,
+    h(SecHead,{icon:IBldg,title:"Transfer Taxes & Recording",sub:"Location-dependent — auto-filled by state, all values editable"}),
+    h("div",{className:"row"},
+      h(TaxField,{label:"State Transfer Tax",vKey:"stateTransferTax",mKey:"stateTransferTaxMode",tip:"Also called deed tax or documentary stamp tax. Rate varies significantly by state — WI is 0.3%, FL is 0.7%, TX has none."}),
+      h(TaxField,{label:"County Transfer Tax",vKey:"countyTransferTax",mKey:"countyTransferTaxMode",tip:"Some counties levy additional transfer taxes on top of the state rate. Common in IL, CA, and NY."})),
+    h("div",{className:"row"},
+      h(TaxField,{label:"City / Municipal Transfer Tax",vKey:"cityTransferTax",mKey:"cityTransferTaxMode",tip:"Certain cities (e.g. Chicago, NYC, San Francisco) have their own transfer tax on top of state and county rates."}),
+      h(Field,{label:"Recording Fees",tip:"County clerk fees to record the deed and any other documents. Usually a flat amount.",range:"$50–$200"},
+        h(Inp,{value:inp.recordingFees,onChange:s("recordingFees"),prefix:"$",placeholder:"75"}))),
+    h(Warn,{text:"Transfer tax rates vary by locality. Verify the exact rates with your title company or county recorder's office before closing."})
+  );
+}
+
+function TaxProrationSection({inp, s}) {
+  const conventions = [
+    ["arrears","Paid in arrears — seller owes their share (debit)"],
+    ["advance","Paid in advance — seller receives credit for unused days"],
+    ["custom","Custom / manual sign"],
+  ];
+  const stateName = ALL_STATES.find(x => x[0] === inp.state)?.[1] || "";
+  const stateHint = inp.state && STATE_DEFS[inp.state]
+    ? `${stateName} typically uses the ${STATE_DEFS[inp.state].taxBillingConvention === "arrears" ? "paid-in-arrears" : "paid-in-advance"} convention.`
+    : null;
+
+  return h(Card,null,
+    h(SecHead,{icon:IHome,title:"Property Tax Proration",sub:"Prorated seller share calculated through closing date"}),
+    h("div",{className:"row"},
+      h(Field,{label:"Annual Property Taxes",tip:"Your total annual property tax bill. This is prorated so the seller pays their share from Jan 1 through the closing date."},
+        h(Inp,{value:inp.annualPropertyTax,onChange:s("annualPropertyTax"),prefix:"$",placeholder:"5,200"})),
+      h(Field,{label:"Tax Billing Convention",tip:"How taxes are paid in your area determines whether the proration is a debit (you owe) or credit (you receive). Arrears = most Midwest states. Advance = CA, FL, TX."},
+        h(Sel,{value:inp.taxBillingConvention,onChange:s("taxBillingConvention"),options:conventions}))),
+    inp.taxBillingConvention==="custom" && h("div",{className:"row"},
+      h(Field,{label:"Manual Proration Sign",tip:'Set to -1 if the proration is a seller debit (you owe the buyer). Set to +1 if it is a seller credit (you receive money).'},
+        h(Sel,{value:inp.taxProrationSign,onChange:s("taxProrationSign"),options:[["-1","−1 (Seller debit — you owe)"],["+1","+1 (Seller credit — you receive)"]]}))),
+    h("div",{className:"row",style:{marginTop:4}},
+      h(Field,{label:"Convention explanation"},
+        inp.taxBillingConvention==="arrears"
+          ? h(Info,{text:"Arrears: Property taxes are billed after the period ends. The seller has lived in the home but hasn't paid taxes yet for those days. At closing, the seller debits the buyer for their share of the unpaid tax."})
+          : inp.taxBillingConvention==="advance"
+          ? h(Info,{text:"Advance: Taxes are paid at the beginning of the period (e.g., Jan 1 covers the full year). The seller has already paid for days they won't own the home, so the buyer credits the seller for those days."})
+          : h(Info,{text:"Custom: Enter the proration sign manually based on your title company's instructions."}))),
+    stateHint && h(Info,{text:stateHint})
+  );
+}
+
+function HOASection({inp, s}) {
+  return h(Card,null,
+    h(SecHead,{icon:IHOA,title:"HOA Dues Proration",sub:"Optional — prorated seller share of HOA dues"}),
+    h(Toggle,{value:inp.includeHOA,onChange:s("includeHOA"),label:"Include HOA dues proration"}),
+    inp.includeHOA && h("div",{style:{marginTop:14}},
+      h("div",{className:"row"},
+        h(Field,{label:"Monthly HOA Dues",tip:"Your regular monthly HOA assessment. This will be prorated through the closing date."},
+          h(Inp,{value:inp.hoaMonthlyDues,onChange:s("hoaMonthlyDues"),prefix:"$",placeholder:"250"})),
+        h(Field,{label:"HOA Billing Convention",tip:"Arrears means the HOA bills after the period — seller owes their share. Advance means dues are pre-paid — seller gets a credit for unused days."},
+          h(Sel,{value:inp.hoaBillingConvention,onChange:s("hoaBillingConvention"),options:[["arrears","Paid in arrears (seller debit)"],["advance","Paid in advance (seller credit)"]]}))))
+  );
+}
+
+function MiscDebitsSection({inp, set}) {
+  const update = (idx, field, val) => set(prev => ({...prev,miscDebits:prev.miscDebits.map((d,i)=>i===idx?{...d,[field]:val}:d)}));
+
+  return h(Card,null,
+    h(SecHead,{icon:IList,title:"Miscellaneous Seller Debits",sub:"Optional line items — only rows with amounts appear in the output"}),
+    h("div",null,
+      inp.miscDebits.map((row, i) => h("div",{key:i,className:"misc-row"},
+        h("input",{className:"inp misc-label-inp",value:row.label,onChange:e=>update(i,"label",e.target.value),placeholder:"Label"}),
+        h("div",{className:"inp-wrap misc-amt-inp"},
+          h("span",{className:"inp-prefix"},"$"),
+          h("input",{className:"inp has-prefix",value:row.amount,onChange:e=>update(i,"amount",e.target.value),placeholder:"0"}))))
+    ),
+    h(Info,{text:"Common items: wire transfer fee ($25–$50), HOA transfer fee ($200–$500), special assessment letters ($50–$150), final utility bills. Enter only what applies."})
+  );
+}
+
+function CapGainsSection({inp, s, set}) {
+  const addImprovement = () => set(prev=>({...prev,improvements:[...prev.improvements,{description:"",amount:""}]}));
+  const removeImprovement = idx => set(prev=>({...prev,improvements:prev.improvements.filter((_,i)=>i!==idx)}));
+  const updateImprovement = (idx,field,val) => set(prev=>({...prev,improvements:prev.improvements.map((im,i)=>i===idx?{...im,[field]:val}:im)}));
+
+  const pp = P(inp.purchasePrice), pcc = P(inp.purchaseClosingCosts);
+  const impTotal = (inp.improvements||[]).reduce((s,i)=>s+P(i.amount),0);
+  const dep = P(inp.depreciationClaimed);
+  const costBasis = pp + pcc + impTotal - dep;
+  const yearsIn = P(inp.yearsInHome);
+  const eligible = inp.primaryResidence && yearsIn >= 2;
+  const exclusion = eligible ? (inp.filingStatus === "married" ? 500000 : 250000) : 0;
+
+  return h(Card,null,
+    h(SecHead,{icon:IChart,title:"Capital Gains Tax (Optional)",sub:"Simplified estimate — consult a tax professional for your situation"}),
+    h(Toggle,{value:inp.includeCapGains,onChange:s("includeCapGains"),label:"Include capital gains estimate"}),
+    inp.includeCapGains && h("div",{style:{marginTop:14}},
+      h("div",{className:"row"},
+        h(Field,{label:"Filing Status",tip:"Your federal tax filing status determines the primary residence exclusion amount."},
+          h(Sel,{value:inp.filingStatus,onChange:s("filingStatus"),options:[["single","Single ($250K exclusion)"],["married","Married Filing Jointly ($500K exclusion)"],["hoh","Head of Household ($250K exclusion)"]]})),
+        h(Field,{label:"Years in Home as Primary Residence",tip:"You need to have lived in the home for at least 2 of the last 5 years to qualify for the primary residence exclusion. Partial-year rules apply — consult a CPA."},
+          h(Inp,{value:inp.yearsInHome,onChange:s("yearsInHome"),placeholder:"e.g. 5"}))),
+      h("div",{style:{marginBottom:10}},
+        h(Toggle,{value:inp.primaryResidence,onChange:s("primaryResidence"),label:inp.primaryResidence?"Primary residence — exclusion may apply":"Not primary residence — exclusion does not apply"})),
+      eligible && h("div",{style:{marginBottom:14}},
+        h("div",{className:"success-box"},
+          h(ISparkle,{style:{width:14,height:14,flexShrink:0}}),
+          h("span",null,`Primary residence exclusion: ${fmt(exclusion)}. Gain up to this amount is tax-free (federal). Rules require 2+ of last 5 years; exceptions apply for job relocation, health, or unforeseen circumstances.`))),
+      !eligible && inp.primaryResidence && yearsIn > 0 && yearsIn < 2 && h("div",{style:{marginBottom:14}},
+        h(Warn,{text:`${yearsIn} year(s) in home. You need at least 2 years for the full exclusion. A partial exclusion may apply if you're moving due to job, health, or unforeseen circumstances.`})),
+      h("div",{className:"row"},
+        h(Field,{label:"Original Purchase Price",tip:"What you paid for the home. This is the starting point for your cost basis.",range:"Required"},
+          h(Inp,{value:inp.purchasePrice,onChange:s("purchasePrice"),prefix:"$",placeholder:"300,000"})),
+        h(Field,{label:"Closing Costs at Purchase",tip:"Costs you paid when buying the home (escrow, title, transfer taxes paid by buyer, etc.). These add to your cost basis.",range:"Typical: 2–4% of purchase price"},
+          h(Inp,{value:inp.purchaseClosingCosts,onChange:s("purchaseClosingCosts"),prefix:"$",placeholder:"8,000"}))),
+      h("div",{style:{marginBottom:6}},
+        h("div",{className:"field-label",style:{marginBottom:8}},"Capital Improvements",h(Tip,{text:"Permanent improvements that add value or extend the life of the home (kitchen remodel, addition, new roof, HVAC). Not repairs or maintenance."})),
+        (inp.improvements||[]).map((imp,i)=>h("div",{key:i,className:"improvement-row"},
+          h("input",{className:"inp desc",value:imp.description,onChange:e=>updateImprovement(i,"description",e.target.value),placeholder:"Description (e.g. Kitchen remodel)"}),
+          h("div",{className:"inp-wrap amt"},h("span",{className:"inp-prefix"},"$"),h("input",{className:"inp has-prefix",value:imp.amount,onChange:e=>updateImprovement(i,"amount",e.target.value),placeholder:"0"})),
+          h("button",{className:"del-btn",onClick:()=>removeImprovement(i),title:"Remove"},"×"))),
+        h("button",{className:"add-btn",onClick:addImprovement,style:{marginTop:4}},h(IPlus,{style:{width:12,height:12}}),"Add improvement")),
+      costBasis > 0 && h("div",{style:{marginBottom:10}},
+        h(Info,{text:`Estimated cost basis: ${fmt(costBasis)} (purchase price ${pp>0?fmt(pp):"$0"} + closing costs ${fmt(pcc)} + improvements ${fmt(impTotal)} − depreciation ${fmt(dep)})`})),
+      h("div",{className:"row"},
+        h(Field,{label:"Depreciation Claimed",tip:"Only applies if the home was used as a rental or for business. The recaptured depreciation is taxed at a special rate. Consult a CPA."},
+          h(Inp,{value:inp.depreciationClaimed,onChange:s("depreciationClaimed"),prefix:"$",placeholder:"0"})),
+        h(Field,{label:"Selling Costs Override",tip:"Normally auto-filled from commission + closing costs. Override only if you have a more precise figure."},
+          h(Inp,{value:inp.sellingCostsOverride,onChange:s("sellingCostsOverride"),prefix:"$",placeholder:"Auto"}))),
+      h("div",{className:"row"},
+        h(Field,{label:"Federal Capital Gains Rate %",tip:"Long-term capital gains rates (assets held >1 year): 0%, 15%, or 20% depending on income. Add 3.8% NIIT if income > $200K single / $250K MFJ.",range:"0 / 15 / 20%"},
+          h(Inp,{value:inp.fedCapGainsRate,onChange:s("fedCapGainsRate"),placeholder:"15"})),
+        h(Field,{label:"State Capital Gains Rate %",tip:"Most states tax capital gains as ordinary income. Auto-filled by state selection; edit as needed."},
+          h(Inp,{value:inp.stateCapGainsRate,onChange:s("stateCapGainsRate"),placeholder:"0"}))),
+      h(Warn,{text:"Capital gains calculations are simplified. Installment sales, 1031 exchanges, AMT, and depreciation recapture require a CPA or tax advisor."}))
+  );
+}
+
+function ScenarioAdjSection({inp, s}) {
+  return h(Card,null,
+    h(SecHead,{icon:ITarget,title:"Scenario Adjustments",sub:"Price and cost assumptions for Conservative and Optimistic scenarios"}),
+    h("div",{className:"row"},
+      h(Field,{label:"Conservative: Price Reduction %",tip:"The Conservative scenario reduces your sale price by this percentage below list price.",range:"Typical: 1–3%"},
+        h(Inp,{value:inp.conservativeAdj,onChange:s("conservativeAdj"),placeholder:"2.0"})),
+      h(Field,{label:"Optimistic: Price Increase %",tip:"The Optimistic scenario increases your sale price by this percentage above list price.",range:"Typical: 0.5–2%"},
+        h(Inp,{value:inp.optimisticAdj,onChange:s("optimisticAdj"),placeholder:"1.5"}))),
+    h("div",{style:{marginTop:10,padding:"14px 16px",borderRadius:8,background:"#FAFAFE",border:"1px solid var(--border)"}},
+      h("div",{style:{fontSize:12,fontWeight:700,color:"var(--text-sec)",marginBottom:10,textTransform:"uppercase",letterSpacing:"0.04em"}},"Conservative Scenario Toggles"),
+      h("div",{style:{display:"flex",flexDirection:"column",gap:9}},
+        h(Toggle,{value:inp.conservativeHigherCosts,onChange:s("conservativeHigherCosts"),label:"Higher closing costs (+25% on top of scenario multiplier)"}),
+        h("div",{style:{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}},
+          h("span",{style:{fontSize:12.5,color:"var(--text-sec)",minWidth:180}},"Seller concessions for repairs ($)"),
+          h("div",{style:{flex:1,minWidth:120}},h(Inp,{value:inp.conservativeRepairConc,onChange:s("conservativeRepairConc"),prefix:"$",placeholder:"0"}))),
+        h(Toggle,{value:inp.conservativeExtendedTime,onChange:s("conservativeExtendedTime"),label:"Extended marketing (+15 days of accrued interest)"}))),
+    h("div",{style:{marginTop:10,padding:"14px 16px",borderRadius:8,background:"#F3FBF7",border:"1px solid #C8E8D8"}},
+      h("div",{style:{fontSize:12,fontWeight:700,color:"var(--green)",marginBottom:10,textTransform:"uppercase",letterSpacing:"0.04em"}},"Optimistic Scenario Toggles"),
+      h(Toggle,{value:inp.optimisticFasterClose,onChange:s("optimisticFasterClose"),label:"Faster close (−10 days of accrued interest)"}))
+  );
+}
+
+function InputsTab({inp, set}) {
+  const s = k => v => set(prev => ({...prev, [k]: v}));
+  return h("div",{className:"stack"},
+    h(SaleSection,{inp,s}),
+    h(LocationSection,{inp,set,s}),
+    h(CommissionSection,{inp,s}),
+    h(MortgageSection,{inp,s}),
+    h(ClosingCostSection,{inp,s}),
+    h(TransferTaxSection,{inp,s}),
+    h(TaxProrationSection,{inp,s}),
+    h(HOASection,{inp,s}),
+    h(MiscDebitsSection,{inp,set}),
+    h(CapGainsSection,{inp,s,set}),
+    h(ScenarioAdjSection,{inp,s}),
+    h("div",{style:{display:"flex",justifyContent:"flex-end",gap:10}},
+      h("button",{type:"button",className:"btn btn-ghost",onClick:()=>{if(window.confirm("Reset all inputs to defaults? This cannot be undone."))set(defaults());}},
+        "Reset All Inputs"))
+  );
+}
+
+/* ══════════════════════════════
+   RESULTS TAB
+══════════════════════════════ */
+
+function ResultsTab({inp, results, r, sensitivity, setSensitivity, sensR, breakEven, setInp}) {
+  if (!r) return h(Card,null,h("div",{className:"empty"},
+    h("div",{className:"empty-icon"},h(IHome,{style:{width:24,height:24,stroke:"var(--accent)"}})),
+    h("div",{className:"empty-title"},"Enter a Sale Price to See Results"),
+    h("div",{className:"empty-sub"},"Fill in your estimated sale price on the Inputs tab.")));
+
+  const sp = r.adjSalePrice;
+
+  const summaryCards = [
+    {l:"Sale Price",v:fmt(r.adjSalePrice),c:"var(--accent)"},
+    {l:"Total Selling Costs",v:fmt(r.totalCosts),c:"var(--red)"},
+    {l:"Mortgage Payoff",v:fmt(r.totalMortgage),c:"var(--orange)"},
+    {l:"Tax Proration",v:fmt(r.taxProration),c:r.taxProration>=0?"var(--green)":"var(--red)",sign:r.taxProration>=0?"+":"−"},
+  ];
+  if (inp.includeHOA && r.hoaProration !== 0) summaryCards.push({l:"HOA Proration",v:fmt(Math.abs(r.hoaProration)),c:r.hoaProration>=0?"var(--green)":"var(--red)",sign:r.hoaProration>=0?"+":"−"});
+  if (inp.includeCapGains) summaryCards.push({l:"Capital Gains Tax",v:fmt(r.totalCGTax),c:"var(--red)"});
+  summaryCards.push({l:"Estimated Net Proceeds",v:fmt(r.netProceeds),c:r.netProceeds>=0?"var(--green)":"var(--red)",big:true});
+
+  const taxConvLabel = inp.taxBillingConvention==="arrears"?"(arrears — seller debit)":inp.taxBillingConvention==="advance"?"(advance — seller credit)":"(custom)";
+
+  const lines = [
+    {l:"Sale Price",v:r.adjSalePrice,sign:"",group:"gross"},
+    {l:"Realtor Commissions",v:-r.commission,sign:"−",group:"costs"},
+    {l:"Seller Closing Costs",v:-r.closingCosts,sign:"−",group:"costs"},
+    {l:"Transfer Taxes + Recording",v:-r.transferTaxes,sign:"−",group:"costs"},
+    {l:"Seller Concessions",v:-r.concessions,sign:"−",group:"costs"},
+  ];
+  if (r.miscDebits > 0) {
+    inp.miscDebits.filter(d=>P(d.amount)>0).forEach(d => lines.push({l:d.label,v:-P(d.amount),sign:"−",group:"costs",sub:true}));
+  }
+  lines.push({l:"Mortgage Principal",v:-r.principalPayoff,sign:"−",group:"mortgage"});
+  if (r.accruedInterest > 0) lines.push({l:`Accrued Interest (${r.accrualDays} days)`,v:-r.accruedInterest,sign:"−",group:"mortgage"});
+  if (r.penalty > 0) lines.push({l:"Prepayment Penalty",v:-r.penalty,sign:"−",group:"mortgage"});
+  lines.push({l:`Property Tax Proration ${taxConvLabel}`,v:r.taxProration,sign:r.taxProration>=0?"+":"−",group:"proration"});
+  if (inp.includeHOA && r.hoaProration !== 0) lines.push({l:"HOA Dues Proration",v:r.hoaProration,sign:r.hoaProration>=0?"+":"−",group:"proration"});
+  if (inp.includeCapGains) {
+    lines.push({l:"Federal Capital Gains Tax",v:-r.fedCGTax,sign:"−",group:"tax"});
+    lines.push({l:"State Capital Gains Tax",v:-r.stateCGTax,sign:"−",group:"tax"});
+  }
+
+  const scs = ["conservative","expected","optimistic"];
+  const scLbl = {conservative:"Conservative",expected:"Expected",optimistic:"Optimistic"};
+  const scClr = {conservative:"var(--red)",expected:"var(--accent)",optimistic:"var(--green)"};
+  const tRows = [
+    {l:"Sale Price",k:"adjSalePrice"},
+    {l:"Commission",k:"commission"},
+    {l:"Closing Costs",k:"closingCosts"},
+    {l:"Transfer Taxes",k:"transferTaxes"},
+    {l:"Concessions",k:"concessions"},
+    {l:"Misc Debits",k:"miscDebits"},
+    {l:"Total Costs",k:"totalCosts",bold:true},
+    {l:"Mortgage Principal",k:"principalPayoff"},
+    {l:"Accrued Interest",k:"accruedInterest"},
+    {l:"Tax Proration",k:"taxProration"},
+  ];
+  if (inp.includeHOA) tRows.push({l:"HOA Proration",k:"hoaProration"});
+  if (inp.includeCapGains) tRows.push({l:"Capital Gains",k:"totalCGTax"});
+  tRows.push({l:"Net Proceeds",k:"netProceeds",bold:true,highlight:true});
+
+  const scAssumptions = {
+    conservative: [
+      `−${P(inp.conservativeAdj).toFixed(1)}% price`,
+      inp.conservativeHigherCosts && "+25% closing costs",
+      P(inp.conservativeRepairConc)>0 && `+${fmt(P(inp.conservativeRepairConc))} repairs`,
+      inp.conservativeExtendedTime && "+15d interest",
+    ].filter(Boolean),
+    expected: [],
+    optimistic: [
+      `+${P(inp.optimisticAdj).toFixed(1)}% price`,
+      inp.optimisticFasterClose && "−10d interest",
+    ].filter(Boolean),
+  };
+
+  const sMin = -P(inp.salePrice)*0.1, sMax = P(inp.salePrice)*0.1;
+
+  return h("div",{className:"stack"},
+
+    /* Print-only header */
+    h("div",{className:"print-header"},
+      h("div",{style:{fontSize:18,fontWeight:700,marginBottom:4}},"Seller Net Proceeds Estimate"),
+      h("div",{style:{fontSize:13,color:"var(--text-sec)"}},
+        [inp.city,inp.county?inp.county+" County":"",ALL_STATES.find(x=>x[0]===inp.state)?.[1]||inp.state].filter(Boolean).join(", "),
+        " · Closing: ",fmtDate(inp.closingDate))),
+
+    /* Export bar */
+    h("div",{className:"export-bar no-print"},
+      h("button",{type:"button",className:"btn btn-ghost",onClick:()=>window.print()},
+        h(IFile,{style:{width:14,height:14}}),"Print / Save PDF"),
+      h("button",{type:"button",className:"btn btn-primary",onClick:()=>exportPDF(inp,results,r)},
+        h(IDl,{style:{width:14,height:14,stroke:"#fff"}}),"Export PDF")),
+
+    /* Summary cards */
+    h("div",{className:"summary-grid"},
+      summaryCards.map(c => h(Card,{key:c.l,className:"summary-card"+(c.big?" highlight":"")},
+        h("div",{className:"summary-label"},c.l),
+        h("div",{className:"summary-val",style:{fontSize:c.big?26:20,color:c.c}},
+          c.sign&&h("span",{style:{fontSize:14,marginRight:2}},c.sign),c.v),
+        c.big && sp > 0 && h("div",{style:{fontSize:10.5,color:"var(--text-dim)",marginTop:3}},
+          pctF(r.netProceeds/sp*100)+" of sale price")))),
+
+    /* Detailed breakdown */
+    h(Card,null,
+      h(SecHead,{icon:IFile,title:"Seller Net Sheet — Detailed Breakdown"}),
+      h("div",null,
+        lines.map((it,i) => h("div",{key:i,className:"line-item"+(i===0?" first":"")+(it.sub?" sub-item":"")},
+          h("div",{className:"line-label"},
+            h("span",{className:"line-sign",style:{color:it.sign==="+"?"var(--green)":it.sign==="−"?"var(--red)":"transparent"}},it.sign||"·"),
+            it.l),
+          h("div",{className:"line-val",style:{color:it.v>=0?"var(--text)":"var(--red)"}},fmt(Math.abs(it.v))))),
+        h("div",{className:"net-row"},
+          h("div",{className:"net-label"},"= Estimated Net Proceeds"),
+          h("div",{className:"net-val",style:{color:r.netProceeds>=0?"var(--green)":"var(--red)"}},fmt(r.netProceeds))))),
+
+    /* Cap gains detail */
+    inp.includeCapGains && r.taxableGain > 0 && h(Card,null,
+      h(SecHead,{icon:IChart,title:"Capital Gains Detail"}),
+      h("div",null,
+        [{l:"Adjusted Sale Price",v:r.adjSalePrice,sign:""},{l:"Less: Estimated Selling Costs",v:-(inp.sellingCostsOverride?P(inp.sellingCostsOverride):r.commission+r.closingCosts),sign:"−"},{l:"Less: Cost Basis",v:-((P(inp.purchasePrice)+P(inp.purchaseClosingCosts)+(inp.improvements||[]).reduce((s,i)=>s+P(i.amount),0)-P(inp.depreciationClaimed))),sign:"−"},{l:"= Estimated Gain",v:r.rawGain,sign:""},{l:`Less: Primary Residence Exclusion`,v:-r.exclusion,sign:"−"},{l:"= Taxable Gain",v:r.taxableGain,sign:""},{l:`Federal Tax (${P(inp.fedCapGainsRate).toFixed(1)}%)`,v:-r.fedCGTax,sign:"−"},{l:`State Tax (${P(inp.stateCapGainsRate).toFixed(1)}%)`,v:-r.stateCGTax,sign:"−"}]
+        .filter(it=>Math.abs(it.v)>0)
+        .map((it,i)=>h("div",{key:i,className:"line-item"+(i===0?" first":"")},
+          h("div",{className:"line-label"},h("span",{className:"line-sign",style:{color:it.sign==="+"?"var(--green)":it.sign==="−"?"var(--red)":"transparent"}},it.sign||""),it.l),
+          h("div",{className:"line-val",style:{color:it.v>=0?"var(--text)":"var(--red)"}},fmt(Math.abs(it.v))))))),
+
+    /* Scenario comparison */
+    h(Card,null,
+      h(SecHead,{icon:IChart,title:"Scenario Comparison",sub:"Conservative / Expected / Optimistic"}),
+      h("div",{style:{overflowX:"auto"}},
+        h("table",{className:"sc-table"},
+          h("thead",null,h("tr",null,
+            h("th",null,""),
+            scs.map(s=>h("th",{key:s,style:{color:scClr[s]}},scLbl[s])))),
+          h("tbody",null,
+            h("tr",{className:"sc-assumption-row"},
+              h("td",{colSpan:1,style:{color:"var(--text-dim)",fontSize:11}},"Assumptions"),
+              scs.map(s=>h("td",{key:s},scAssumptions[s].length
+                ? h("div",{style:{display:"flex",gap:3,flexWrap:"wrap",justifyContent:"flex-end"}},scAssumptions[s].map((a,i)=>h(Tag,{key:i,type:s==="conservative"?"con":s==="optimistic"?"opt":"neu",text:a})))
+                : h("span",{style:{fontSize:10,color:"var(--text-dim)"}},"Base")))),
+            tRows.map(row=>h("tr",{key:row.k,className:row.bold?"sc-bold":""},
+              h("td",null,row.l),
+              scs.map(s=>h("td",{key:s,style:{color:row.bold?scClr[s]:"var(--text)"}},
+                fmt(results[s]?results[s][row.k]:0)))))))),
+
+    /* Sensitivity */
+    h(Card,null,
+      h(SecHead,{icon:ISliders,title:"Sensitivity & Break-Even",sub:"Explore how price changes affect your net"}),
+      h("div",{style:{marginBottom:22}},
+        h("div",{style:{fontSize:12.5,color:"var(--text-sec)",marginBottom:6}},"Adjust sale price: ",
+          h("span",{style:{fontFamily:"var(--mono)",fontWeight:600,color:sensitivity===0?"var(--text)":sensitivity>0?"var(--green)":"var(--red)"}},(sensitivity>=0?"+":"")+fmt(sensitivity))),
+        h("input",{type:"range",className:"sens-slider",min:sMin,max:sMax,step:1000,value:sensitivity,onChange:e=>setSensitivity(Number(e.target.value))}),
+        h("div",{style:{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--text-dim)",marginTop:3}},
+          h("span",null,fmt(sMin)),h("span",null,"List price"),h("span",null,"+"+fmt(sMax))),
+        sensR && h("div",{className:"sens-result"},
+          h("div",null,h("div",{style:{fontSize:11,color:"var(--text-dim)"}},"Adjusted Price"),h("div",{style:{fontFamily:"var(--mono)",fontSize:15,fontWeight:600,color:"var(--accent)"}},fmt(sensR.adjSalePrice))),
+          h("div",{style:{textAlign:"center"}},h("div",{style:{fontSize:11,color:"var(--text-dim)"}},"Net Change"),h("div",{style:{fontFamily:"var(--mono)",fontSize:15,fontWeight:600,color:sensR.netProceeds-r.netProceeds>=0?"var(--green)":"var(--red)"}},(sensR.netProceeds-r.netProceeds>=0?"+":"")+fmt(sensR.netProceeds-r.netProceeds))),
+          h("div",{style:{textAlign:"right"}},h("div",{style:{fontSize:11,color:"var(--text-dim)"}},"Adjusted Net"),h("div",{style:{fontFamily:"var(--mono)",fontSize:15,fontWeight:600,color:sensR.netProceeds>=0?"var(--green)":"var(--red)"}},fmt(sensR.netProceeds))))),
+      h("div",{style:{borderTop:"1px solid var(--border)",paddingTop:18}},
+        h("div",{style:{fontSize:12.5,color:"var(--text-sec)",marginBottom:6}},"Break-even: What sale price yields a target net?"),
+        h("div",{style:{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}},
+          h("div",{style:{flex:"1 1 200px"}},
+            h(Inp,{value:inp.sensitivityTarget,onChange:v=>setInp(p=>({...p,sensitivityTarget:v})),prefix:"$",placeholder:"Target net proceeds"})),
+          breakEven && h("div",{className:"be-result"},
+            h("span",{style:{fontSize:11.5,color:"var(--text-dim)"}},"Required sale price:"),
+            h("span",{style:{fontFamily:"var(--mono)",fontSize:15,fontWeight:700,color:"var(--green)"}},fmt(breakEven)))))),
+
+    /* Disclaimers */
+    h(Card,null,
+      h(SecHead,{icon:IInfo,title:"Accuracy & Disclaimers"}),
+      h("div",{style:{display:"flex",flexDirection:"column",gap:8}},
+        h(Warn,{text:"Mortgage payoff interest accrues daily. Always obtain a formal payoff statement from your lender for an exact figure."}),
+        h(Warn,{text:"Transfer tax rates vary by locality. Verify with your title company or county recorder before closing."}),
+        h(Warn,{text:"Capital gains estimates are simplified and do not account for depreciation recapture, AMT, NIIT, or installment sale rules. Consult a CPA."}),
+        h(Warn,{text:"Property tax proration conventions vary. Your title company's HUD/ALTA will show the exact proration amount at closing."}),
+        h(Warn,{text:"This calculator is for estimation purposes only and does not constitute financial or legal advice."})))
+  );
+}
+
+/* ══════════════════════════════
+   APP
+══════════════════════════════ */
+
+function App() {
+  const [inp, setInp] = useState(defaults);
+  const [tab, setTab] = useState("inputs");
+  const [loaded, setLoaded] = useState(false);
+  const [sens, setSens] = useState(0);
+  const [showScenarios, setShowScenarios] = useState(false);
+
+  useEffect(() => {
+    const d = loadMain();
+    if (d) setInp(prev => {
+      const merged = {...prev, ...d};
+      if (!merged.improvements || !Array.isArray(merged.improvements)) merged.improvements = [{description:"",amount:""}];
+      if (!merged.miscDebits || !Array.isArray(merged.miscDebits)) merged.miscDebits = defaults().miscDebits;
+      return merged;
+    });
+    setLoaded(true);
+  }, []);
+
+  useEffect(() => { if (loaded) saveMain(inp); }, [inp, loaded]);
+
+  const results = useMemo(() => ({
+    conservative: calc(inp, "conservative"),
+    expected: calc(inp, "expected"),
+    optimistic: calc(inp, "optimistic"),
+  }), [inp]);
+
+  const sensR = useMemo(() => {
+    if (!sens) return null;
+    return calc({...inp, salePrice: String(P(inp.salePrice)+sens)}, "expected");
+  }, [inp, sens]);
+
+  const breakEven = useMemo(() => {
+    const t = P(inp.sensitivityTarget);
+    if (!t || !results.expected) return null;
+    let lo = 0, hi = P(inp.salePrice)*4;
+    for (let i=0; i<60; i++) {
+      const mid = (lo+hi)/2;
+      const r2 = calc({...inp, salePrice:String(mid)}, "expected");
+      if (!r2) break;
+      if (r2.netProceeds < t) lo=mid; else hi=mid;
+    }
+    return Math.round((lo+hi)/2);
+  }, [inp, results]);
+
+  const r = results.expected;
+  const stateName = ALL_STATES.find(x=>x[0]===inp.state)?.[1]||"";
+
+  return h("div",null,
+    h("div",{className:"header"},
+      h("div",{className:"header-inner"},
+        h("div",{className:"brand"},
+          h("div",{className:"brand-icon"},
+            h("svg",{viewBox:"0 0 24 24",width:18,height:18,fill:"none",stroke:"#fff",strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"},
+              h("path",{d:"M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"}),
+              h("path",{d:"M9 22V12h6v10"}))),
+          h("div",null,
+            h("div",{className:"brand-title"},"Net Proceeds Calculator v2"),
+            h("div",{className:"brand-sub"},stateName||"Home Sale Estimate"))),
+        h("div",{className:"nav"},
+          h("button",{type:"button",className:"nav-btn"+(tab==="inputs"?" active":""),onClick:()=>setTab("inputs")},"Inputs"),
+          h("button",{type:"button",className:"nav-btn"+(tab==="results"?" active":""),onClick:()=>setTab("results")},"Results"+(r?` · ${fmt(r.netProceeds)}`:"")),
+          h("button",{type:"button",className:"nav-scenarios-btn no-print",onClick:()=>setShowScenarios(true)},
+            h(ISave,{style:{width:13,height:13}}),"Scenarios")))),
+
+    showScenarios && h(ScenarioModal,{onClose:()=>setShowScenarios(false),inp,results,setInp}),
+
+    h("div",{className:"content"},
+      tab==="inputs"
+        ? h(InputsTab,{inp,set:setInp})
+        : h(ResultsTab,{inp,results,r,sensitivity:sens,setSensitivity:setSens,sensR,breakEven,setInp}))
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("app")).render(h(App));
+</script>
+</body>
+</html>
