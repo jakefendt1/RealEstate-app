@@ -1064,7 +1064,7 @@ function ResultsTab({inp, results, r, sensitivity, setSensitivity, sensR, breakE
             tRows.map(row=>h("tr",{key:row.k,className:row.bold?"sc-bold":""},
               h("td",null,row.l),
               scs.map(s=>h("td",{key:s,style:{color:row.bold?scClr[s]:"var(--text)"}},
-                fmt(results[s]?results[s][row.k]:0)))))))),
+                fmt(results[s]?results[s][row.k]:0))))))))),
 
     /* Sensitivity */
     h(Card,null,
